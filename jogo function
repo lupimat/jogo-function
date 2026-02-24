@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<title>Jogo das Funções</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        padding: 40px;
+        transition: 0.5s;
+        margin:0;
+        overflow-x: hidden;
+    }
+
+    .fundoRosa {
+        background-color: #ffd6e7;
+        background-image:
+            url("https://upload.wikimedia.org/wikipedia/commons/3/3b/Linear_Function_Graph.svg"),
+            url("https://upload.wikimedia.org/wikipedia/commons/8/8e/Quadratic_Function_Graph.svg");
+        background-repeat: no-repeat;
+        background-position: left bottom, right bottom;
+        background-size: 300px;
+        position: relative;
+    }
+
+    .container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 40px;
+        margin-top: 60px;
+    }
+
+    .box {
+        background-color: #f8c8dc;
+        padding: 40px;
+        cursor: pointer;
+        font-size: 20px;
+        border-radius: 12px;
+        width: 220px;
+    }
+
+    .box:hover { transform: scale(1.05); }
+
+    button {
+        padding: 10px 20px;
+        font-size: 16px;
+        margin-top: 20px;
+        cursor: pointer;
+    }
+
+    input {
+        width: 70px;
+        font-size: 16px;
+        text-align: center;
+    }
+
+    .resultado {
+        font-size: 26px;
+        font-weight: bold;
+        margin-top: 20px;
+    }
+
+    .ganhou1 { color: green; }
+    .ganhou2 { color: orange; }
+    .perdeu { color: red; }
+
+    .numeroGrande {
+        font-size: 50px;
+        margin: 20px;
+    }
+
+    .formula {
+        font-size: 24px;
+        font-weight: bold;
+        margin: 20px;
+    }
+
+    .diferencaBox {
+        font-size: 22px;
+        background-color: white;
+        display: inline-block;
+        padding: 8px 18px;
+        margin: 15px;
+        border-radius: 8px;
+        border: 2px solid #ff4da6;
+    }
+
+    .botaoExtra {
+        background-color: #f8c8dc;
+        display: inline-block;
+        padding: 15px 25px;
+        margin-top: 25px;
+        border-radius: 10px;
+        cursor: pointer;
+        font-weight: bold;
+    }
+
+    .botaoExtra:hover {
+        background-color: #f4a9c7;
+    }
+
+    /* Canvas para confetti */
+    #confetti-canvas {
+        position: fixed;
+        top:0;
+        left:0;
+        width: 100%;
+        height: 100%;
+        pointer-events:none;
+        z-index: 9999;
+    }
+
+</style>
+</head>
+<body>
+
+<canvas id="confetti-canvas"></canvas>
+<div id="game"></div>
+
+<script>
+let tipoFuncao = "";
+let vp = 0;
+let m = 0;
+let b = 0;
+let x = 0;
+let segundaTentativaUsada = false;
+
+// ========================== Confetti ==========================
+const canvas = document.getElementById('confetti-canvas');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+let confettis = [];
+
+function createConfetti() {
+    for(let i=0;i<100;i++){
+        confettis.push({
+            x: Math.random()*canvas.width,
+            y: Math.random()*canvas.height-50,
+            r: Math.random()*6+4,
+            d: Math.random()*20+10,
+            color: "rgb("+Math.floor(Math.random()*255)+","+Math.floor(Math.random()*255)+","+Math.floor(Math.random()*255)+")",
+            tilt: Math.floor(Math.random()*10)-10
+        });
+    }
+    drawConfetti();
+}
+
+function drawConfetti(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    confettis.forEach(function(c){
+        ctx.beginPath();
+        ctx.lineWidth = c.r;
+        ctx.strokeStyle = c.color;
+        ctx.moveTo(c.x + c.tilt + c.r/2, c.y);
+        ctx.lineTo(c.x + c.tilt, c.y + c.tilt + c.r/2);
+        ctx.stroke();
+    });
+    moveConfetti();
+}
+
+function moveConfetti(){
+    confettis.forEach(function(c){
+        c.y += 2;
+        c.tilt += 0.5;
+        if(c.y > canvas.height){ c.y = -10; c.x = Math.random()*canvas.width;}
+    });
+    if(confettis.length>0){
+        requestAnimationFrame(drawConfetti);
+    }
+}
+
+function startConfetti(){
+    confettis = [];
+    createConfetti();
+    setTimeout(()=>{ confettis = []; ctx.clearRect(0,0,canvas.width,canvas.height);},3000);
+}
+// ========================== Fim Confetti ==========================
+
+function paginaEscolha() {
+    document.body.classList.remove("fundoRosa");
+    segundaTentativaUsada = false;
+
+    document.getElementById("game").innerHTML = `
+        <h2>Escolhe o tipo de função</h2>
+        <div class="container">
+            <div class="box" onclick="escolher('afim')">
+                Função Afim<br>y = mx + b
+            </div>
+            <div class="box" onclick="escolher('quadratica')">
+                Função Quadrática<br>y = mx² + b
+            </div>
+        </div>
+    `;
+}
+
+function escolher(tipo) {
+    tipoFuncao = tipo;
+    paginaVP();
+}
+
+function paginaVP() {
+    document.body.classList.add("fundoRosa");
+
+    document.getElementById("game").innerHTML = `
+        <h2>Sorteio do Valor Pretendido</h2>
+        <div class="numeroGrande" id="valorVP">...</div>
+    `;
+
+    let contador = 0;
+    let intervalo = setInterval(() => {
+        document.getElementById("valorVP").innerText =
+            Math.floor(Math.random() * 21) - 10;
+        contador++;
+        if (contador > 15) {
+            clearInterval(intervalo);
+            vp = Math.floor(Math.random() * 21) - 10;
+            document.getElementById("valorVP").innerText = vp;
+            document.getElementById("game").innerHTML +=
+                `<button onclick="paginaMB()">Continuar</button>`;
+        }
+    }, 100);
+}
+
+function paginaMB() {
+    let formulaTexto = tipoFuncao === "afim" ? "y = mx + b" : "y = mx² + b";
+
+    document.getElementById("game").innerHTML = `
+        <h2>Escolhe valores de m e b no intervalo [-10 ; 10]</h2>
+        <div class="formula">${formulaTexto}</div>
+        <p>Valor Pretendido (v.p.) = ${vp}</p>
+        m: <input type="number" id="m" min="-10" max="10"><br><br>
+        b: <input type="number" id="b" min="-10" max="10"><br>
+        <button onclick="guardarMB()">Confirmar</button>
+    `;
+}
+
+function guardarMB() {
+    m = parseFloat(document.getElementById("m").value);
+    b = parseFloat(document.getElementById("b").value);
+
+    if (m < -10 || m > 10 || b < -10 || b > 10 || isNaN(m) || isNaN(b)) {
+        alert("Valores inválidos!");
+        return;
+    }
+    sorteioX(false);
+}
+
+// ======================= Sorteio Visível de X =======================
+function sorteioX(extra){
+    document.getElementById("game").innerHTML = `
+        <h2>${extra ? "Novo Sorteio de x" : "Sorteio de x"}</h2>
+        <div class="numeroGrande" id="valorX">...</div>
+    `;
+
+    let contador = 0;
+    let intervalo = setInterval(()=>{
+        let tempX = tipoFuncao === "quadratica"
+            ? Math.floor(Math.random()*6)
+            : Math.floor(Math.random()*11)-5;
+        document.getElementById("valorX").innerText = tempX;
+        contador++;
+        if(contador>15){
+            clearInterval(intervalo);
+            x = tempX;
+            mostrarResultado(extra);
+        }
+    },100);
+}
+// ====================================================================
+
+function mostrarResultado(extra){
+    let y = tipoFuncao === "quadratica"
+        ? m*x*x + b
+        : m*x + b;
+
+    let diferenca = Math.abs(vp - y);
+
+    let mensagem = "";
+    let classe = "";
+
+    if(diferenca===0){
+        mensagem = "🥇 PARABÉNS! Ganhou o 1º PRÉMIO!";
+        classe = "ganhou1";
+        startConfetti();
+    } else if(diferenca>=1 && diferenca<=3){
+        mensagem = "🥈 Muito bem! Ganhou o 2º PRÉMIO!";
+        classe = "ganhou2";
+        startConfetti();
+    } else{
+        mensagem = "❌ Não ganhou prémio.";
+        classe = "perdeu";
+    }
+
+    let botaoExtraHTML = "";
+    if(!segundaTentativaUsada && !extra){
+        botaoExtraHTML = `
+            <div class="botaoExtra" onclick="usarSegundaTentativa()">
+                Sortear novo x por 1€
+            </div>
+        `;
+    }
+
+    document.getElementById("game").innerHTML = `
+        <h2>${extra ? "Novo Sorteio de x" : "Valor sorteado de x"}</h2>
+        <div class="numeroGrande">${x}</div>
+        <p>Valor calculado de y = ${y}</p>
+        <p>Valor Pretendido (v.p.) = ${vp}</p>
+
+        <div class="diferencaBox">Diferença: |v.p. - y| = ${diferenca}</div>
+
+        <div class="resultado ${classe}">${mensagem}</div>
+        ${botaoExtraHTML}
+        <br><br>
+        <button onclick="paginaEscolha()">Jogar novamente</button>
+    `;
+}
+
+function usarSegundaTentativa(){
+    segundaTentativaUsada = true;
+    sorteioX(true);
+}
+
+paginaEscolha();
+</script>
+</body>
+</html>
